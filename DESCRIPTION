@@ -22,6 +22,8 @@ Depends:
   weights,
   plotly,
   ggplot2,
-  effects
+  effects,
+  insight,
+  schoolmath
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.3.9000
