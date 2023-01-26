@@ -1,10 +1,11 @@
-#' A generic function used to create a table of analysis-specific output for common statistical models
+#' The regression model method for the `output` function from the `doingRbest` package
 #' 
-#' @param model The stored model object created from a function in the doingRbest package to run a statistical model.
+#' @param model The stored model object created from the `regress` function in the `doingRbest` package.
 #' @param interpretation Set equal to `TRUE` for an explanatory paragraph beneath the output table interpreting the numeric values.
 #' @param predictors An optional character vector of custom names for the x-variables in the model.
 #' @param outcome An optional custom name (character vector of length 1) for the y-variable in the model.
-#' @param sim_slopes For moderated regression or factorial ANOVA output, set equal to `TRUE` for a simple slopes/simple effects analysis in place of a traditional output table for the analysis.
+#' @param sim_slopes For moderated regression output, set equal to `TRUE` for a simple slopes analysis in place of a traditional output table for the analysis.
+#' @param flip_moderator For moderated regression output when `sim_slopes = TRUE`, alternate the position between predictor and moderator variables in the output.
 #' @param ... Extra named arguments that may be available upon package updates.
 #'
 #' @return An output table as an HTML object (in a separate window or the Viewer pane)
@@ -14,6 +15,15 @@
 #' # Simple Regression Output Table
 #' model <- regress(disp ~ mpg, data = mtcars)
 #' output(model)
+#' # Multiple Regression Output Table
+#' model <- regress(disp ~ mpg + wt + hp, data = mtcars)
+#' output(model)
+#' # Moderated Regression Output Table
+#' model <- regress(disp ~ mpg*wt, data = mtcars)
+#' output(model)
+#' # Moderated Regression Simple Slopes Output Table
+#' model <- regress(disp ~ mpg*wt, data = mtcars)
+#' output(model, sim_slopes = TRUE)
 
 regression.output <- function(model          = NULL,
                               predictors     = NULL,
