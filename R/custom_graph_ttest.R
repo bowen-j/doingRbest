@@ -9,7 +9,7 @@
 #' @export
 #' 
 #' @examples
-#' #' # Single Sample t-test Output Table
+#' # Single Sample t-test Output Table
 #' model <- ttest(outcome = "disp", data = mtcars, type = "s", mu = 100)
 #' graph(model, outcome = "Fuel Displacement")
 #' # Independent Samples t-test Output Table

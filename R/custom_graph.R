@@ -10,7 +10,7 @@
 #' @export
 #' 
 #' @examples
-#' #' # Simple Regression Graph (scatterplot with line)
+#' # Simple Regression Graph (scatterplot with line)
 #' model <- regress(disp ~ mpg, data = mtcars)
 #' graph(model)
 #' # Multiple Regression Graph (3-D scatterplot with plane - 2 predictors maximum to render in 3-D)
