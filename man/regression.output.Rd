@@ -2,7 +2,7 @@
 % Please edit documentation in R/custom_output_regression.R
 \name{regression.output}
 \alias{regression.output}
-\title{A generic function used to create a table of analysis-specific output for common statistical models}
+\title{The regression model method for the \code{output} function from the \code{doingRbest} package}
 \usage{
 regression.output(
   model = NULL,
@@ -13,7 +13,7 @@ regression.output(
 )
 }
 \arguments{
-\item{model}{The stored model object created from a function in the doingRbest package to run a statistical model.}
+\item{model}{The stored model object created from the \code{regress} function in the \code{doingRbest} package.}
 
 \item{predictors}{An optional character vector of custom names for the x-variables in the model.}
 
@@ -23,16 +23,27 @@ regression.output(
 
 \item{...}{Extra named arguments that may be available upon package updates.}
 
-\item{sim_slopes}{For moderated regression or factorial ANOVA output, set equal to \code{TRUE} for a simple slopes/simple effects analysis in place of a traditional output table for the analysis.}
+\item{sim_slopes}{For moderated regression output, set equal to \code{TRUE} for a simple slopes analysis in place of a traditional output table for the analysis.}
+
+\item{flip_moderator}{For moderated regression output when \code{sim_slopes = TRUE}, alternate the position between predictor and moderator variables in the output.}
 }
 \value{
 An output table as an HTML object (in a separate window or the Viewer pane)
 }
 \description{
-A generic function used to create a table of analysis-specific output for common statistical models
+The regression model method for the \code{output} function from the \code{doingRbest} package
 }
 \examples{
 # Simple Regression Output Table
 model <- regress(disp ~ mpg, data = mtcars)
 output(model)
+# Multiple Regression Output Table
+model <- regress(disp ~ mpg + wt + hp, data = mtcars)
+output(model)
+# Moderated Regression Output Table
+model <- regress(disp ~ mpg*wt, data = mtcars)
+output(model)
+# Moderated Regression Simple Slopes Output Table
+model <- regress(disp ~ mpg*wt, data = mtcars)
+output(model, sim_slopes = TRUE)
 }
