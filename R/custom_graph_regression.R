@@ -22,6 +22,157 @@
 #' model <- regress(disp ~ mpg*wt, data = mtcars)
 #' graph(model, sim_slopes = TRUE)
 
+regression.graph <- function(model,
+                             predictors = c(),
+                             outcome = NULL,
+                             ...) {
+  tidy_model <- tidy(model)
+  predictor_names <- tidy_model$term[-1]
+  outcome_name <- colnames(model$model)[1]
+  if(length(predictors) == 0) {
+    predictors <- predictor_names
+  }
+  if(length(outcome) == 0) {
+    outcome <- outcome_name
+  }
+  n_predictors <- length(predictor_names)
+  if(n_predictors > 2) {
+    plot <- "Error: A graph cannot be generated for a standard regression model with more than 2 predictors because it would require more than 3 dimensions to render it :)"
+  } else {
+    yvar <- model$model[,1]
+    x1 <- as.numeric(model$model[,2])
+    if(n_predictors == 2) {
+      x2 <- model$model[,3]
+    }
+  }
+  if(n_predictors == 1) {
+    data <- data.frame(yvar, x1)
+    x_range <- seq(min(x1),max(x1),length.out=100)
+    y_pred <- coef(model)[1]+coef(model)[2]*x_range
+    plot <- plot_ly(data,
+                    x=~x1,
+                    y=~yvar,
+                    name="observed data",
+                    type="scatter",
+                    mode="markers",
+                    hovertemplate = paste(paste0(predictors[1],': %{x}'),
+                                          paste0('<br>',outcome,': %{y}'))
+    ) %>%
+      add_trace(x=~x_range,
+                y=~y_pred,
+                mode="lines",
+                name = "model predictions") %>%
+      add_ribbons(data = augment(model, se_fit=T),
+                  ymin = ~.fitted - 1.96*.se.fit,
+                  ymax = ~.fitted + 1.96*.se.fit,
+                  line = list(color = 'rgba(7,164,181.05)',
+                              width = .001),
+                  fillcolor = 'rgba(7,164,181,.2',
+                  name = '95% CI fit') %>%
+      layout(xaxis = list(title = predictors[1]),
+             yaxis = list(title = outcome))
+    
+  } else if(n_predictors == 2) {
+    x1.seq <- seq(min(x1),max(x1),length.out=25)
+    x2.seq <- seq(min(x2),max(x2),length.out=25)
+    z <- t(outer(X=x1.seq,Y=x2.seq,
+                 FUN=function(x1,x2) coef(model)[1]+
+                   coef(model)[2]*x1+coef(model)[3]*x2))
+    plot <- plot_ly(data = model$model,
+                    x = ~x1,
+                    y = ~x2,
+                    z = yvar,
+                    name = "observed data",
+                    type = "scatter3d",
+                    mode = "markers",
+                    hovertemplate = paste(paste0(predictors[1],': %{x}'),
+                                          paste0('<br>',predictors[2],': %{y}'),
+                                          paste0('<br>',outcome,': %{z}'))
+    ) %>%
+      add_trace(x = ~x1.seq,
+                y = ~x2.seq,
+                z = ~z,
+                name = "model predictions",
+                type = "surface",
+                opacity = .5) %>%
+      layout(scene = list(
+        xaxis = list(title = predictors[1]),
+        yaxis = list(title = predictors[2]),
+        zaxis = list(title = outcome)
+      )
+      )
+  }
+  if(n_predictors == 1 & class(model$model[,2]) == "factor") {
+    plot <- "Please use a t-test model and a bar graph for this single-predictor model, as the predictor is dichotomous."
+  }
+  plot
+}
+
+regression.int.graph <- function(model,
+                                 predictors = c(),
+                                 outcome = NULL,
+                                 ...) {
+  if(class(model$model[,2]) == "factor" &
+     class(model$model[,3]) == "factor") {
+    plot <- "Please use an ANOVA model for these predictor variables, as they are both categorical :)"
+  }
+  tidy_model <- tidy(model)
+  predictor_names <- tidy(model)$term[-1]
+  outcome_name <- colnames(model$model)[1]
+  if(length(predictors) == 0) {
+    predictors <- predictor_names
+  }
+  if(length(outcome) == 0) {
+    outcome <- outcome_name
+  }
+  if(length(predictors) == 2) {
+    predictors[3] <- paste0(predictors[1]," x ",predictors[2])
+  }
+  n_predictors <- length(predictor_names)
+  if(n_predictors != 3) {
+    plot <- "Sorry, right now this function can only handle 2 predictors and their interaction for a 3-D graph."
+  }
+  yvar <- model$model[,1]
+  x1 <- model$model[,2]
+  x2 <- model$model[,3]
+  x1.seq <- if(class(x1)=="numeric") {
+    seq(min(x1),max(x1),length.out=25)
+  } else if(class(x1)=="factor") {
+    seq(min(as.numeric(x1)-1),max(as.numeric(x1)-1),length.out=25)
+  }
+  x2.seq <- if(class(x2)=="numeric") {
+    seq(min(x2),max(x2),length.out=25)
+  } else if(class(x2)=="factor") {
+    seq(min(as.numeric(x2)-1),max(as.numeric(x2)-1),length.out=25)
+  }
+  z <- t(outer(X=x1.seq,Y=x2.seq,
+               FUN=function(x1,x2) coef(model)[1]+
+                 coef(model)[2]*x1+coef(model)[3]*x2+coef(model)[4]*x1*x2))
+  plot <- plot_ly(data = model$model,
+                  x = ~x1,
+                  y = ~x2,
+                  z = yvar,
+                  name = "observed data",
+                  type = "scatter3d",
+                  mode = "markers",
+                  hovertemplate = paste(paste0(predictors[1],': %{x}'),
+                                        paste0('<br>',predictors[2],': %{y}'),
+                                        paste0('<br>',outcome,': %{z}'))) %>%
+    add_trace(x = ~x1.seq,
+              y = ~x2.seq,
+              z = ~z,
+              name = "model predictions",
+              type = "surface",
+              opacity = .5) %>%
+    layout(scene = list(
+      xaxis = list(title = predictors[1]),
+      yaxis = list(title = predictors[2]),
+      zaxis = list(title = outcome)
+    )
+    )
+  plot
+}
+
 regression.slopes.graph <- function(model = model,
                                     predictors = c(),
                                     outcome = NULL,
@@ -160,156 +311,6 @@ regression.slopes.graph <- function(model = model,
   plot
 }
 
-regression.int.graph <- function(model,
-                                 predictors = c(),
-                                 outcome = NULL,
-                                 ...) {
-  if(class(model$model[,2]) == "factor" &
-     class(model$model[,3]) == "factor") {
-    plot <- "Please use an ANOVA model for these predictor variables, as they are both categorical :)"
-  }
-  tidy_model <- tidy(model)
-  predictor_names <- tidy(model)$term[-1]
-  outcome_name <- colnames(model$model)[1]
-  if(length(predictors) == 0) {
-    predictors <- predictor_names
-  }
-  if(length(outcome) == 0) {
-    outcome <- outcome_name
-  }
-  if(length(predictors) == 2) {
-    predictors[3] <- paste0(predictors[1]," x ",predictors[2])
-  }
-  n_predictors <- length(predictor_names)
-  if(n_predictors != 3) {
-    plot <- "Sorry, right now this function can only handle 2 predictors and their interaction for a 3-D graph."
-  }
-  yvar <- model$model[,1]
-  x1 <- model$model[,2]
-  x2 <- model$model[,3]
-  x1.seq <- if(class(x1)=="numeric") {
-               seq(min(x1),max(x1),length.out=25)
-  } else if(class(x1)=="factor") {
-              seq(min(as.numeric(x1)-1),max(as.numeric(x1)-1),length.out=25)
-            }
-  x2.seq <- if(class(x2)=="numeric") {
-    seq(min(x2),max(x2),length.out=25)
-  } else if(class(x2)=="factor") {
-    seq(min(as.numeric(x2)-1),max(as.numeric(x2)-1),length.out=25)
-  }
-  z <- t(outer(X=x1.seq,Y=x2.seq,
-               FUN=function(x1,x2) coef(model)[1]+
-                 coef(model)[2]*x1+coef(model)[3]*x2+coef(model)[4]*x1*x2))
-  plot <- plot_ly(data = model$model,
-                  x = ~x1,
-                  y = ~x2,
-                  z = yvar,
-                  name = "observed data",
-                  type = "scatter3d",
-                  mode = "markers",
-                  hovertemplate = paste(paste0(predictors[1],': %{x}'),
-                                        paste0('<br>',predictors[2],': %{y}'),
-                                        paste0('<br>',outcome,': %{z}'))) %>%
-    add_trace(x = ~x1.seq,
-              y = ~x2.seq,
-              z = ~z,
-              name = "model predictions",
-              type = "surface",
-              opacity = .5) %>%
-    layout(scene = list(
-      xaxis = list(title = predictors[1]),
-      yaxis = list(title = predictors[2]),
-      zaxis = list(title = outcome)
-      )
-    )
-  plot
-}
-
-regression.graph <- function(model,
-                             predictors = c(),
-                             outcome = NULL,
-                             ...) {
-  tidy_model <- tidy(model)
-  predictor_names <- tidy_model$term[-1]
-  outcome_name <- colnames(model$model)[1]
-  if(length(predictors) == 0) {
-    predictors <- predictor_names
-  }
-  if(length(outcome) == 0) {
-    outcome <- outcome_name
-  }
-  n_predictors <- length(predictor_names)
-  if(n_predictors > 2) {
-    plot <- "Error: A graph cannot be generated for a standard regression model with more than 2 predictors because it would require more than 3 dimensions to render it :)"
-  } else {
-    yvar <- model$model[,1]
-    x1 <- as.numeric(model$model[,2])
-    if(n_predictors == 2) {
-      x2 <- model$model[,3]
-    }
-  }
-  if(n_predictors == 1) {
-  data <- data.frame(yvar, x1)
-  x_range <- seq(min(x1),max(x1),length.out=100)
-  y_pred <- coef(model)[1]+coef(model)[2]*x_range
-  plot <- plot_ly(data,
-                  x=~x1,
-                  y=~yvar,
-                  name="observed data",
-                  type="scatter",
-                  mode="markers",
-                  hovertemplate = paste(paste0(predictors[1],': %{x}'),
-                                        paste0('<br>',outcome,': %{y}'))
-                  ) %>%
-    add_trace(x=~x_range,
-              y=~y_pred,
-              mode="lines",
-              name = "model predictions") %>%
-    add_ribbons(data = augment(model, se_fit=T),
-                ymin = ~.fitted - 1.96*.se.fit,
-                ymax = ~.fitted + 1.96*.se.fit,
-                line = list(color = 'rgba(7,164,181.05)',
-                            width = .001),
-                fillcolor = 'rgba(7,164,181,.2',
-                name = '95% CI fit') %>%
-    layout(xaxis = list(title = predictors[1]),
-           yaxis = list(title = outcome))
-
-  } else if(n_predictors == 2) {
-    x1.seq <- seq(min(x1),max(x1),length.out=25)
-    x2.seq <- seq(min(x2),max(x2),length.out=25)
-    z <- t(outer(X=x1.seq,Y=x2.seq,
-                 FUN=function(x1,x2) coef(model)[1]+
-                   coef(model)[2]*x1+coef(model)[3]*x2))
-    plot <- plot_ly(data = model$model,
-                    x = ~x1,
-                    y = ~x2,
-                    z = yvar,
-                    name = "observed data",
-                    type = "scatter3d",
-                    mode = "markers",
-                    hovertemplate = paste(paste0(predictors[1],': %{x}'),
-                                          paste0('<br>',predictors[2],': %{y}'),
-                                          paste0('<br>',outcome,': %{z}'))
-                    ) %>%
-      add_trace(x = ~x1.seq,
-                y = ~x2.seq,
-                z = ~z,
-                name = "model predictions",
-                type = "surface",
-                opacity = .5) %>%
-      layout(scene = list(
-        xaxis = list(title = predictors[1]),
-        yaxis = list(title = predictors[2]),
-        zaxis = list(title = outcome)
-        )
-      )
-  }
-  if(n_predictors == 1 & class(model$model[,2]) == "factor") {
-    plot <- "Please use a t-test model and a bar graph for this single-predictor model, as the predictor is dichotomous."
-  }
-  plot
-}
 
 
 
