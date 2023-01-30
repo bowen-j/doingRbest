@@ -27,6 +27,7 @@ Depends:
   schoolmath,
   webshot,
   shiny,
-  htmltools
+  htmltools,
+  lm.beta
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.3.9000
